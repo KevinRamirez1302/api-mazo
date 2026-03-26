@@ -7,12 +7,12 @@ export class PersonasService {
   constructor(@Inject('DATABASE_POOL') private pool: Pool) { }
 
   async create(persona: CreatePersonaDto) {
-    const { nombre, email, mensaje, enviar_informacion } = persona
+    const { nombre, apellido, email, curso, mensaje, } = persona
 
     try {
       const query =
-        'INSERT INTO personas (nombre, email,mensaje,enviar_informacion) VALUES ($1, $2,$3,$4) RETURNING *';
-      const values = [nombre, email, mensaje, enviar_informacion];
+        'INSERT INTO personas (nombre, apellido,email,curso,mensaje) VALUES ($1, $2,$3,$4,$5) RETURNING *';
+      const values = [nombre, apellido, email, curso, mensaje];
       const res = await this.pool.query(query, values);
       return res.rows[0];
     } catch (error) {
