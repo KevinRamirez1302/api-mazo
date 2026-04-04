@@ -1,4 +1,5 @@
 import { Injectable, Inject, UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { Pool } from 'pg';
@@ -7,7 +8,10 @@ import bcrypt from 'bcrypt';
 @Injectable()
 export class UsuariosService {
 
-  constructor(@Inject('DATABASE_POOL') private readonly pool: Pool) { }
+  constructor(
+    @Inject('DATABASE_POOL') private readonly pool: Pool,
+    private jwtService: JwtService
+  ) { }
 
   async create(usuario: CreateUsuarioDto) {
     try {
@@ -46,7 +50,14 @@ export class UsuariosService {
 
       // Separamos la contraseña para NO enviarla al cliente de vuelta
       const { password: userPassword, ...userData } = user;
-      return userData;
+      
+      const payload = { sub: userData.id, username: userData.username };
+      const token = await this.jwtService.signAsync(payload);
+      return {
+        user: userData,
+        access_token: token,
+        token: token
+      };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         throw error;
