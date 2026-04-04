@@ -20,7 +20,6 @@ export class UsuariosService {
       const salt = await bcrypt.genSalt(10);
       const passwordHash = await bcrypt.hash(password, salt);
 
-      // IMPORTANTE: Retornar los datos insertados, excepto el password
       const query = "INSERT INTO usuarios (username, password, profile_img) VALUES ($1, $2, $3) RETURNING id, username, profile_img";
       const res = await this.pool.query(query, [username, passwordHash, profile_img]);
 
@@ -38,17 +37,16 @@ export class UsuariosService {
       const res = await this.pool.query(query, [username]);
 
       if (res.rows.length === 0) {
-        throw new UnauthorizedException("Credenciales inválidas");
+        throw new UnauthorizedException("Credenciales invalidas");
       }
 
       const user = res.rows[0];
       const validPassword = await bcrypt.compare(password, user.password);
 
       if (!validPassword) {
-        throw new UnauthorizedException("Credenciales inválidas");
+        throw new UnauthorizedException("Credenciales invalidas");
       }
 
-      // Separamos la contraseña para NO enviarla al cliente de vuelta
       const { password: userPassword, ...userData } = user;
       
       const payload = { sub: userData.id, username: userData.username };
