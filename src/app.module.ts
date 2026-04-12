@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { PersonasModule } from './personas/personas.module';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { ChatbotModule } from './chatbot/chatbot.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
         },
       },
     }),
+    ChatbotModule,
   ],
   controllers: [AppController],
   providers: [AppService],
