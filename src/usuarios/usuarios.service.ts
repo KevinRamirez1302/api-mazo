@@ -37,6 +37,7 @@ export class UsuariosService {
       const res = await this.pool.query(query, [username]);
 
       if (res.rows.length === 0) {
+        console.log(`Login fallido: Usuario '${username}' no encontrado.`);
         throw new UnauthorizedException("Credenciales invalidas");
       }
 
@@ -44,9 +45,11 @@ export class UsuariosService {
       const validPassword = await bcrypt.compare(password, user.password);
 
       if (!validPassword) {
+        console.log(`Login fallido: Contraseña incorrecta para el usuario '${username}'.`);
         throw new UnauthorizedException("Credenciales invalidas");
       }
 
+      console.log(`Login exitoso para el usuario '${username}'.`);
       const { password: userPassword, ...userData } = user;
       
       const payload = { sub: userData.id, username: userData.username };

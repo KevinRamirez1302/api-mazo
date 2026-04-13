@@ -67,9 +67,10 @@ No hables de temas ajenos al instituto (política, deportes, etc.).
       });
       const result = await chat.sendMessage(userMessage);
       return result.response.text();
-    } catch (error) {
-      console.log("Error al generar respuesta: " + error.message);
-      return "Error al generar respuesta";
+    } catch (error: any) {
+      console.error("Error en ChatbotService:", error.message);
+      // Lanzar el error para que NestJS devuelva un status code de error (500 por defecto)
+      throw error;
     }
   }
 
