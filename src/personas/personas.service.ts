@@ -32,7 +32,7 @@ export class PersonasService {
         html: welcomeEmailTemplate(nombre, curso),
       });
     } catch (error) {
-      console.log("Ha ocurrido un error al enviar el correo: " + error.message);
+      console.error(`[Error de Correo] No se pudo enviar el correo de bienvenida a ${email}:`, error);
     }
   }
 
