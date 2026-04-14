@@ -9,15 +9,16 @@ export class PersonasService {
   constructor(@Inject('DATABASE_POOL') private pool: Pool, private mailerService: MailerService) { }
 
   async create(persona: CreatePersonaDto) {
-    const { nombre, apellido, email, curso, mensaje, } = persona
+    const { nombre, apellido, email, curso, mensaje, telefono, dni } = persona
 
     try {
       const query =
-        'INSERT INTO personas (nombre, apellido,email,curso,mensaje) VALUES ($1, $2,$3,$4,$5) RETURNING *';
-      const values = [nombre, apellido, email, curso, mensaje];
+        'INSERT INTO personas (nombre, apellido, email, curso, mensaje, telefono, dni) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *';
+      const values = [nombre, apellido, email, curso, mensaje, telefono, dni];
       const res = await this.pool.query(query, values);
       await this.enviarCorreo(email, nombre, curso);
       return res.rows[0];
+
 
     } catch (error) {
       throw new InternalServerErrorException("Ha ocurrido un error al insertar dato: " + error.message);
