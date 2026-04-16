@@ -97,7 +97,7 @@ export const welcomeEmailTemplate = (nombre: string, curso: string) => `
             
             <p>Estamos emocionados de acompañarte en este proceso educativo. Muy pronto recibirás más detalles sobre el inicio de las clases y los materiales necesarios.</p>
             
-            <a href="https://mazo.dev" class="button">Ir a mi plataforma</a>
+            <a href="https://villamazo.vercel.app/" class="button">Ir a mi plataforma</a>
         </div>
         <div class="footer">
             <p>&copy; ${new Date().getFullYear()} Mazo. Todos los derechos reservados.</p>
