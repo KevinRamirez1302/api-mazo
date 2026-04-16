@@ -1,15 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ChatbotService {
+  private readonly logger = new Logger(ChatbotService.name);
   private genAI: GoogleGenerativeAI;
   private model: any;
 
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
     if (!apiKey) {
+      this.logger.error('GOOGLE_API_KEY no está configurada en las variables de entorno');
       throw new Error('GOOGLE_API_KEY no está configurada en las variables de entorno');
     }
     this.genAI = new GoogleGenerativeAI(apiKey);
@@ -62,18 +64,77 @@ No hables de política, deportes u otros temas ajenos al instituto.
     `
   }
 
-  async generateResponse(chatHistory: any[], userMessage: string) {
-    try {
-      const chat = this.model.startChat({
-        history: chatHistory,
-      });
-      const result = await chat.sendMessage(userMessage);
-      return result.response.text();
-    } catch (error: any) {
-      console.error("Error en ChatbotService:", error.message);
-      throw error;
+  /**
+   * Sanitiza el historial de chat para asegurar que cumple con el formato
+   * requerido por la API de Gemini y evitar errores.
+   */
+  private sanitizeHistory(chatHistory: any[]): any[] {
+    if (!Array.isArray(chatHistory)) {
+      return [];
     }
+
+    return chatHistory
+      .filter((entry) => {
+        // Cada entrada debe tener role y parts
+        if (!entry || typeof entry !== 'object') return false;
+        if (!entry.role || !['user', 'model'].includes(entry.role)) return false;
+        if (!Array.isArray(entry.parts) || entry.parts.length === 0) return false;
+        // Cada part debe tener un text no vacío
+        return entry.parts.every(
+          (part: any) => part && typeof part.text === 'string' && part.text.trim().length > 0,
+        );
+      })
+      .map((entry) => ({
+        role: entry.role,
+        parts: entry.parts.map((part: any) => ({ text: String(part.text) })),
+      }));
   }
 
+  async generateResponse(chatHistory: any[], userMessage: string): Promise<string> {
+    // Validar que el mensaje del usuario no esté vacío
+    if (!userMessage || typeof userMessage !== 'string' || !userMessage.trim()) {
+      return 'Por favor, escribe un mensaje para que pueda ayudarte.';
+    }
 
+    const sanitizedHistory = this.sanitizeHistory(chatHistory);
+
+    try {
+      const chat = this.model.startChat({
+        history: sanitizedHistory,
+      });
+
+      const result = await chat.sendMessage(userMessage.trim());
+      const responseText = result.response.text();
+
+      // Validar que obtuvimos una respuesta válida
+      if (!responseText || typeof responseText !== 'string' || !responseText.trim()) {
+        this.logger.warn('Gemini devolvió una respuesta vacía');
+        return 'Lo siento, no pude generar una respuesta. Por favor, consulta en secretaría.';
+      }
+
+      return responseText;
+    } catch (error: any) {
+      this.logger.error(`Error al comunicarse con Gemini: ${error.message}`, error.stack);
+
+      // Manejar errores específicos de la API de Gemini
+      if (error.message?.includes('429') || error.status === 429) {
+        return 'Estoy recibiendo muchas consultas en este momento. Por favor, espera unos segundos e inténtalo de nuevo.';
+      }
+
+      if (error.message?.includes('SAFETY') || error.message?.includes('blocked')) {
+        return 'No puedo responder a esa consulta. Si necesitas ayuda, por favor consulta directamente en secretaría.';
+      }
+
+      if (error.message?.includes('API_KEY') || error.message?.includes('authentication') || error.status === 401 || error.status === 403) {
+        return 'Hay un problema de configuración con el servicio. Por favor, consulta en secretaría o inténtalo más tarde.';
+      }
+
+      if (error.message?.includes('ECONNREFUSED') || error.message?.includes('ETIMEDOUT') || error.message?.includes('network')) {
+        return 'No puedo conectarme al servicio en este momento. Por favor, inténtalo más tarde.';
+      }
+
+      // Error genérico — nunca enviar detalles técnicos al usuario
+      return 'Lo siento, ha ocurrido un error inesperado. Por favor, consulta en secretaría o inténtalo más tarde.';
+    }
+  }
 }
